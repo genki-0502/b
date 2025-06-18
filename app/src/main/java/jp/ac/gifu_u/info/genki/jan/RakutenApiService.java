@@ -8,7 +8,7 @@ public interface RakutenApiService {
     @GET("services/api/IchibaItem/Search/20170706")
     Call<RakutenResponse> searchItem(
             @Query("applicationId") String appId,
-            @Query("isbnjan") String isbnjan,   // ← 変更点
+            @Query("keyword") String keyword,   // ← 変更点
             @Query("format") String format,
             @Query("hits") int hits
     );

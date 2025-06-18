@@ -1,21 +1,15 @@
 package jp.ac.gifu_u.info.genki.jan;
 
-
-import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
-
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
@@ -26,36 +20,42 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.mlkit.vision.barcode.common.Barcode;
+import com.google.gson.Gson;
 import com.google.mlkit.vision.barcode.BarcodeScanning;
-import com.google.mlkit.vision.barcode.BarcodeScanner;
+import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.common.InputImage;
 
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import com.google.gson.Gson; // ファイル上部に追加
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_CAMERA_PERMISSION = 200;
+
     private PreviewView previewView;
+    private TextView    textProductInfo;
+
     private ExecutorService cameraExecutor;
+
+    /** 二重呼び出し防止用 */
+    private String lastJan = "";
+    private long   lastCallTime = 0;   // ms
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        previewView = findViewById(R.id.previewView);
-        cameraExecutor = Executors.newSingleThreadExecutor();
+        previewView      = findViewById(R.id.previewView);
+        textProductInfo  = findViewById(R.id.textProductInfo);
+        cameraExecutor   = Executors.newSingleThreadExecutor();
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
@@ -67,21 +67,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults); // ←これを追加！
-
-        if (requestCode == REQUEST_CAMERA_PERMISSION) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startCamera();
-            } else {
-                Toast.makeText(this, "カメラの使用が許可されていません", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
+    // ───────────────────────────────── API 呼び出し ──────────────────────────────
 
     private void fetchRakutenInfo(String janCode) {
+
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("https://app.rakuten.co.jp/")
                 .addConverterFactory(GsonConverterFactory.create())
@@ -90,8 +79,8 @@ public class MainActivity extends AppCompatActivity {
         RakutenApiService service = retrofit.create(RakutenApiService.class);
 
         Call<RakutenResponse> call = service.searchItem(
-                "1042527241521827202", // ←ここをあなたのIDに書き換え
-                janCode,
+                "1042527241521827202",   // ★差し替え必須
+                janCode,             // keyword として送る
                 "json",
                 1
         );
@@ -99,34 +88,54 @@ public class MainActivity extends AppCompatActivity {
         call.enqueue(new Callback<RakutenResponse>() {
             @Override
             public void onResponse(Call<RakutenResponse> call, Response<RakutenResponse> response) {
-                Log.d("RakutenAPI", "検索JANコード: " + janCode);
+
+                Log.d("RakutenAPI", "検索JAN: " + janCode);
+
                 if (response.isSuccessful()) {
-                    // 🔽 レスポンス全体のJSONを確認
-                    String json = new Gson().toJson(response.body());
-                    Log.d("RakutenAPI", "レスポンス内容: " + json);
+
+                    Log.d("RakutenAPI", "レスポンス: " + new Gson().toJson(response.body()));
 
                     if (response.body() != null && !response.body().Items.isEmpty()) {
                         RakutenResponse.Item item = response.body().Items.get(0).Item;
-                        runOnUiThread(() -> Toast.makeText(getApplicationContext(),
-                                "商品: " + item.itemName + "\n¥" + item.itemPrice, Toast.LENGTH_LONG).show());
+                        runOnUiThread(() -> {
+                            textProductInfo.setText(
+                                    "商品名: " + item.itemName + "\n価格: ¥" + item.itemPrice);
+                        });
                     } else {
-                        Log.e("RakutenAPI", "商品が見つかりませんでした");
+                        runOnUiThread(() -> textProductInfo.setText("商品が見つかりませんでした"));
                     }
+
                 } else {
-                    Log.e("RakutenAPI", "レスポンス失敗: " + response.code());
+                    Log.e("RakutenAPI", "HTTPエラー: " + response.code());
+                    runOnUiThread(() -> textProductInfo.setText("APIエラー: " + response.code()));
                 }
             }
 
             @Override
             public void onFailure(Call<RakutenResponse> call, Throwable t) {
                 Log.e("RakutenAPI", "通信失敗", t);
+                runOnUiThread(() -> textProductInfo.setText("通信失敗: " + t.getClass().getSimpleName()));
             }
         });
     }
 
+    /** 連続スキャン対策＋13桁数字のみ許可 */
+    private void tryFetch(String raw) {
 
+        if (!raw.matches("\\d{8,13}")) return;              // JAN/EAN 以外スキップ
+        long now = System.currentTimeMillis();
+
+        if (raw.equals(lastJan) && now - lastCallTime < 3000) return;  // 3秒以内は無視
+
+        lastJan      = raw;
+        lastCallTime = now;
+        fetchRakutenInfo(raw);
+    }
+
+    // ───────────────────────────── CameraX & ML Kit ────────────────────────────
 
     private void startCamera() {
+
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture =
                 ProcessCameraProvider.getInstance(this);
 
@@ -137,19 +146,19 @@ public class MainActivity extends AppCompatActivity {
                 Preview preview = new Preview.Builder().build();
                 preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
-                CameraSelector cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
+                ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build();
 
-                ImageAnalysis imageAnalysis =
-                        new ImageAnalysis.Builder()
-                                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                                .build();
-
-                imageAnalysis.setAnalyzer(cameraExecutor, image -> {
-                    scanBarcodes(image); // ML Kitで解析
-                });
+                imageAnalysis.setAnalyzer(cameraExecutor, this::scanBarcodes);
 
                 cameraProvider.unbindAll();
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
+                cameraProvider.bindToLifecycle(
+                        this,
+                        CameraSelector.DEFAULT_BACK_CAMERA,
+                        preview,
+                        imageAnalysis
+                );
 
             } catch (ExecutionException | InterruptedException e) {
                 e.printStackTrace();
@@ -158,37 +167,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void scanBarcodes(ImageProxy image) {
-        if (image == null || image.getImage() == null) {
+
+        if (image.getImage() == null) {
             image.close();
             return;
         }
 
-        @SuppressWarnings("UnsafeOptInUsageError")
         InputImage inputImage =
                 InputImage.fromMediaImage(image.getImage(), image.getImageInfo().getRotationDegrees());
 
-        BarcodeScanner scanner = BarcodeScanning.getClient();
-
-        scanner.process(inputImage)
+        BarcodeScanning.getClient()
+                .process(inputImage)
                 .addOnSuccessListener(barcodes -> {
-                    for (Barcode barcode : barcodes) {
-                        String rawValue = barcode.getRawValue();
-                        Log.d("ScanResult", "検出されたコード: " + rawValue);
-                        runOnUiThread(() ->
-                                Toast.makeText(this, "検出: " + rawValue, Toast.LENGTH_SHORT).show());
-
-                        // 🔽楽天APIに問い合わせ
-                        fetchRakutenInfo(rawValue);
+                    for (com.google.mlkit.vision.barcode.common.Barcode bc : barcodes) {
+                        String rawValue = bc.getRawValue();
+                        Log.d("ScanResult", "検出: " + rawValue);
+                        tryFetch(rawValue);    // ←ここだけ
                     }
                 })
-                .addOnFailureListener(e -> {
-                    Log.e("ScanError", "スキャン失敗", e);
-                })
-                .addOnCompleteListener(task -> {
-                    image.close();
-                });
+                .addOnCompleteListener(task -> image.close());
     }
-
-
-
 }
