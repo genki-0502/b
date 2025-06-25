@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <!-- ───────────── Home → Scan ───────────── -->
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="jp.ac.gifu_u.info.genki.jan.HomeFragment"
+        android:label="Home">
+
+        <action
+            android:id="@+id/action_homeFragment_to_scanFragment"
+            app:destination="@id/scanFragment"/>
+    </fragment>
+
+    <!-- ───────────── Scan → Result ──────────── -->
+    <fragment
+        android:id="@+id/scanFragment"
+        android:name="jp.ac.gifu_u.info.genki.jan.ScanFragment"
+        android:label="Scan">
+
+        <action
+            android:id="@+id/action_scanFragment_to_resultFragment"
+            app:destination="@id/resultFragment"/>
+    </fragment>
+
+    <!-- ───────────── Result ──────────────── -->
+    <fragment
+        android:id="@+id/resultFragment"
+        android:name="jp.ac.gifu_u.info.genki.jan.ResultFragment"
+        android:label="Result">
+
+        <argument
+            android:name="janCode"
+            app:argType="string"/>
+    </fragment>
+
+</navigation>

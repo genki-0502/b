@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 半透明の黒 (全画面) -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#AA000000"/> <!-- AA = 67% 透過 -->
+        </shape>
+    </item>
+
+    <!-- 中央に透明な穴を開ける (四角形)  -->
+    <item android:gravity="center">
+        <!-- サイズはお好みで。ここでは 260dp 四方にしています -->
+        <shape android:shape="rectangle">
+            <size android:width="260dp" android:height="260dp"/>
+            <solid android:color="@android:color/transparent"/>
+        </shape>
+    </item>
+
+    <!-- 4 隅に緑ライン (簡易的に線だけ表示) -->
+    <!-- コーナーをしっかり描きたければ別途 VectorDrawable で作り、
+         4 回 rotate させて重ねる方法が綺麗です。-->
+    <item android:gravity="top|start">
+        <shape>
+            <size android:width="40dp" android:height="4dp"/>
+            <solid android:color="@color/overlay_green"/>
+        </shape>
+    </item>
+    <item android:gravity="top|start">
+        <shape>
+            <size android:width="4dp" android:height="40dp"/>
+            <solid android:color="@color/overlay_green"/>
+        </shape>
+    </item>
+
+    <item android:gravity="top|end" android:rotation="90">
+        <shape>
+            <size android:width="40dp" android:height="4dp"/>
+            <solid android:color="@color/overlay_green"/>
+        </shape>
+    </item>
+    <item android:gravity="top|end" android:rotation="90">
+        <shape>
+            <size android:width="4dp" android:height="40dp"/>
+            <solid android:color="@color/overlay_green"/>
+        </shape>
+    </item>
+
+    <item android:gravity="bottom|start" android:rotation="-90">
+        <shape>
+            <size android:width="40dp" android:height="4dp"/>
+            <solid android:color="@color/overlay_green"/>
+        </shape>
+    </item>
+    <item android:gravity="bottom|start" android:rotation="-90">
+        <shape>
+            <size android:width="4dp" android:height="40dp"/>
+            <solid android:color="@color/overlay_green"/>
+        </shape>
+    </item>
+
+    <item android:gravity="bottom|end" android:rotation="180">
+        <shape>
+            <size android:width="40dp" android:height="4dp"/>
+            <solid android:color="@color/overlay_green"/>
+        </shape>
+    </item>
+    <item android:gravity="bottom|end" android:rotation="180">
+        <shape>
+            <size android:width="4dp" android:height="40dp"/>
+            <solid android:color="@color/overlay_green"/>
+        </shape>
+    </item>
+
+</layer-list>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+        <variable
+            name="item"
+            type="jp.ac.gifu_u.info.genki.jan.RakutenResponse.Item"/>
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp">
+
+        <!-- 商品画像 -->
+        <ImageView
+            android:id="@+id/imageProduct"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:scaleType="centerCrop"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintDimensionRatio="1:1"
+            app:imageUrl="@{item.mediumImageUrls.get(0).imageUrl}" />
+
+
+        <!-- 商品名 -->
+        <TextView
+            android:id="@+id/textProductName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:text='@{item.itemName}'
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            app:layout_constraintTop_toBottomOf="@id/imageProduct"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- 価格 -->
+        <TextView
+            android:id="@+id/textPrice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text='@{"¥" + String.valueOf(item.itemPrice)}'
+            android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+            android:textColor="?attr/colorPrimary"
+            app:layout_constraintTop_toBottomOf="@id/textProductName"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <!-- 楽天へ -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOpenWeb"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="楽天の商品ページを開く"
+            app:icon="@drawable/ic_round_open_in_browser_24"
+            app:iconPadding="8dp"
+            app:layout_constraintTop_toBottomOf="@id/textPrice"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <!-- 戻る -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="再スキャン"
+            app:layout_constraintTop_toBottomOf="@id/btnOpenWeb"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <!-- ローディング -->
+        <ProgressBar
+            android:id="@+id/progress"
+            style="?android:attr/progressBarStyleLarge"
+            android:visibility="gone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

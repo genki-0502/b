@@ -1,3 +1,8 @@
 <resources>
-    <string name="app_name">JANコード</string>
+    <string name="app_name">QR／バーコードスキャナー＋価格比較</string>
+    <string name="title_home">QR／バーコードスキャナー&#10;+価格比較アプリ</string>
+    <string name="btn_start_scan">スキャン開始</string>
+    <string name="btn_retry">再試行</string>
+    <string name="label_lowest">全体最安値：%1$s（%2$s）</string>
+    <string name="content_camera_icon">カメラアイコン</string>
 </resources>
